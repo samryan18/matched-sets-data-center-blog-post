@@ -28,8 +28,7 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background: var(--bg);
     color: var(--text);
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     padding: 16px 24px;
@@ -281,6 +280,7 @@
   .shadow-prices { display: flex; gap: 10px; }
   .shadow-card {
     flex: 1;
+    min-width: 80px;
     background: var(--bg);
     border-radius: 8px;
     padding: 10px;
@@ -333,6 +333,54 @@
   .insight-bar em { color: var(--highlight); font-style: normal; font-weight: 600; }
 
   .sp-sub { font-size: 10px; color: var(--dim); }
+
+  /* Responsive: tablet */
+  @media (max-width: 960px) {
+    .layout {
+      grid-template-columns: 1fr 1fr;
+    }
+    .layout > div:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* Responsive: mobile */
+  @media (max-width: 640px) {
+    body {
+      padding: 12px 14px;
+      gap: 10px;
+    }
+    h1 { font-size: 14px; }
+    .layout {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .layout > div:first-child {
+      grid-column: auto;
+    }
+    .shadow-prices {
+      flex-wrap: wrap;
+    }
+    .total-value {
+      font-size: 28px;
+    }
+    .shadow-card .sp-value {
+      font-size: 20px;
+    }
+    .insight-bar {
+      font-size: 12px;
+      padding: 8px 12px;
+    }
+    .slider-row input[type="range"] {
+      height: 8px;
+    }
+    .panel {
+      overflow: visible;
+    }
+    .solution-visual {
+      overflow-y: visible;
+    }
+  }
 </style>
 </head>
 <body>
