@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integer Optimization Explorer — Kiso Technology</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f5f9;
+    --surface: #ffffff;
+    --border: #e0e3eb;
+    --text: #1a1d27;
+    --dim: #6b7084;
+    --storage-color: #d97706;
+    --accel-color: #7c3aed;
+    --compute-color: #2563eb;
+    --binding-glow: #ef4444;
+    --highlight: #059669;
+    --kiso-navy: #303088;
+    --kiso-blue: #4d65ff;
+    --kiso-sky: #7CCFFA;
+    --kiso-purple: #8686C1;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 24px;
+    gap: 12px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .kiso-logo svg { display: block; }
+  .header-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+  }
+  h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--dim);
+  }
+
+  /* Inline SVG icons */
+  .icon { display: inline-block; vertical-align: middle; margin: 0 2px; flex-shrink: 0; }
+
+  /* Sliders */
+  .slider-group { display: flex; flex-direction: column; gap: 10px; }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-label {
+    font-size: 12px;
+    min-width: 52px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .slider-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--dim);
+    height: 4px;
+    cursor: pointer;
+  }
+  .slider-val {
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 20px;
+    text-align: right;
+  }
+
+  /* Config table */
+  .config-table {
+    font-size: 12px;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .config-table th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--dim);
+    padding: 3px 6px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .config-table td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .config-table tr:last-child td { border-bottom: none; }
+  .config-name { font-weight: 600; }
+  .config-val { color: var(--highlight); font-weight: 700; }
+  .config-cost { color: var(--dim); }
+
+  /* Solution panel */
+  .solution-visual {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    max-width: none;
+  }
+  .config-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+  .config-card:hover { border-color: #c5c9d6; }
+  .config-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .config-card-name {
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .config-card-value {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--highlight);
+  }
+  .config-card-badge {
+    font-size: 9px;
+    font-weight: 700;
+    color: #ffffff;
+    background: var(--highlight);
+    border-radius: 4px;
+    padding: 1px 5px;
+    letter-spacing: 0.3px;
+  }
+  .config-card-shapes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+  .config-card-shapes svg { flex-shrink: 0; }
+  .config-card-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+    margin: 0 1px;
+    flex-shrink: 0;
+  }
+  .solution-empty {
+    color: var(--dim);
+    font-size: 12px;
+    text-align: center;
+    padding: 20px;
+    align-self: center;
+    justify-self: center;
+  }
+
+  .total-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .total-value {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--highlight);
+    transition: all 0.3s ease;
+    line-height: 1;
+  }
+  .total-label {
+    font-size: 10px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Resource bars */
+  .resource-bars { display: flex; flex-direction: column; gap: 8px; }
+  .res-bar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .res-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+  }
+  .res-bar-header .res-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+  }
+  .res-bar-header .res-usage { color: var(--dim); }
+  .bar-track {
+    height: 18px;
+    background: #ebedf3;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    border: 1.5px solid transparent;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .bar-track.binding {
+    border-color: var(--binding-glow);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.35s ease;
+  }
+  .bar-fill.storage { background: var(--storage-color); }
+  .bar-fill.accel { background: var(--accel-color); }
+  .bar-fill.compute { background: var(--compute-color); }
+  .binding-label {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--binding-glow);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .bar-track.binding .binding-label { opacity: 1; }
+
+  /* Shadow prices */
+  .shadow-prices { display: flex; gap: 10px; }
+  .shadow-card {
+    flex: 1;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+  }
+  .shadow-card.active {
+    border-color: rgba(5, 150, 105, 0.35);
+    background: rgba(5, 150, 105, 0.07);
+  }
+  .shadow-card.zero { opacity: 0.35; }
+  .shadow-card .sp-label {
+    font-size: 9px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .shadow-card .sp-value {
+    font-size: 24px;
+    font-weight: 800;
+    transition: all 0.3s ease;
+  }
+  .shadow-card.active .sp-value { color: var(--highlight); }
+  .shadow-card.zero .sp-value { color: var(--dim); }
+  .shadow-card .sp-unit {
+    font-size: 9px;
+    color: var(--dim);
+  }
+
+  /* Insight */
+  .insight-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.4;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+  .insight-bar em { color: var(--highlight); font-style: normal; font-weight: 600; }
+
+  .sp-sub { font-size: 10px; color: var(--dim); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="kiso-logo"><svg width="100" height="22" viewBox="0 0 118 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18.475 0.720703C18.8981 0.720703 19.3318 0.913532 19.816 1.46029C20.3151 2.02394 20.794 2.88751 21.2591 4.03167C21.9515 5.73523 22.5413 7.87043 23.1411 10.1708C21.2736 12.5245 19.8308 16.866 17.9148 20.2457C16.2056 17.8092 14.7698 15.1395 12.7852 14.0927C12.919 13.5958 13.0503 13.0986 13.1789 12.6042C14.0132 9.39792 14.7593 6.32402 15.691 4.03167C16.1561 2.88751 16.635 2.02394 17.1341 1.46029C17.6183 0.913532 18.052 0.720703 18.475 0.720703Z" fill="#8686C1"/>
+    <path d="M10.9846 14.668C11.9327 14.668 12.7765 15.1498 13.6808 16.1164C14.6043 17.1034 15.4389 18.4257 16.4225 19.8927C16.7114 20.3236 17.014 20.7686 17.3344 21.2132C15.9333 23.4084 14.2617 24.9999 12.0178 24.9999H0.810547C2.86696 23.7883 4.32621 21.7131 5.5467 19.8927C6.53029 18.4257 7.36492 17.1034 8.28835 16.1164C9.19273 15.1498 10.0365 14.668 10.9846 14.668Z" fill="#7CCFFA"/>
+    <path d="M25.9651 9.50195C26.7434 9.50195 27.5717 10.0947 28.5468 11.6107C29.4933 13.0821 30.3493 15.0549 31.3228 17.1669C32.2709 19.2238 33.3252 21.3978 34.6343 23.0568C35.2253 23.8059 35.8945 24.482 36.6568 24.9999H15.2734C16.0357 24.482 16.7049 23.8059 17.2959 23.0568C18.605 21.3978 19.6593 19.2238 20.6074 17.1669C21.5809 15.0549 22.4369 13.0821 23.3834 11.6107C24.3585 10.0947 25.1868 9.50195 25.9651 9.50195Z" fill="#8686C1"/>
+    <path d="M83.6338 0.720703C87.6357 0.720703 89.7932 1.58775 90.9131 2.13672L90.123 5.2002C88.6079 4.37675 86.6473 3.61914 83.6006 3.61914C82.1076 3.61919 80.911 3.9703 80.0107 4.67285C79.1105 5.35355 78.6602 6.28695 78.6602 7.47266C78.6602 8.4387 78.9346 9.05368 79.4834 9.64648C80.0324 10.2174 80.8674 10.6349 81.9873 10.8984L85.9062 11.8203C87.8606 12.2595 89.3209 13.0178 90.2871 14.0938C91.2751 15.1477 91.7694 16.6732 91.7695 18.3418C91.7695 19.7691 91.4185 21.0104 90.7158 22.0645C90.0351 23.1185 89.0578 23.931 87.7842 24.502C86.5325 25.0729 85.0609 25.3584 83.3701 25.3584C79.3196 25.3584 76.6624 24.2546 75.4326 23.7275L76.2559 20.6973C78.561 21.6689 81.328 22.4589 83.3701 22.459C84.9511 22.459 86.2027 22.1079 87.125 21.4053C88.0692 20.7026 88.542 19.7693 88.542 18.6055C88.5419 17.6614 88.2779 16.7286 87.751 16.1357C87.224 15.5429 86.3898 15.1141 85.248 14.8506L81.3281 13.9619C79.396 13.5228 77.9251 12.7539 76.915 11.6562C75.9269 10.5364 75.4326 9.28405 75.4326 7.57129C75.4327 6.21007 75.7725 5.01338 76.4531 3.98145C77.1338 2.94939 78.0897 2.14807 79.3193 1.57715C80.5709 1.00629 82.009 0.720713 83.6338 0.720703Z" fill="#1a1d27"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M105.67 0.720703C107.931 0.720802 109.919 1.24785 111.632 2.30176C113.344 3.35569 114.683 4.80524 115.649 6.64941C116.637 8.49379 117.132 10.6239 117.132 13.0391C117.132 15.4544 116.637 17.5955 115.649 19.4619C114.683 21.3063 113.333 22.7566 111.599 23.8105C109.886 24.8425 107.898 25.3583 105.637 25.3584C103.419 25.3584 101.443 24.8424 99.708 23.8105C97.9953 22.7566 96.6556 21.3064 95.6895 19.4619C94.7234 17.6175 94.2402 15.4763 94.2402 13.0391C94.2403 10.6238 94.7233 8.49382 95.6895 6.64941C96.6776 4.80501 98.0285 3.35572 99.7412 2.30176C101.454 1.24797 103.43 0.720703 105.67 0.720703ZM105.67 3.84961C104.067 3.84961 102.661 4.23351 101.453 5.00195C100.246 5.74848 99.3018 6.81407 98.6211 8.19727C97.9624 9.5806 97.6328 11.1946 97.6328 13.0391C97.6328 14.8835 97.9624 16.4975 98.6211 17.8809C99.3018 19.2641 100.246 20.3409 101.453 21.1094C102.661 21.8778 104.067 22.2617 105.67 22.2617C107.295 22.2616 108.711 21.8778 109.919 21.1094C111.126 20.319 112.059 19.2316 112.718 17.8486C113.398 16.4653 113.739 14.8616 113.739 13.0391C113.739 11.1947 113.398 9.58057 112.718 8.19727C112.059 6.81415 111.126 5.74848 109.919 5.00195C108.711 4.23352 107.295 3.84973 105.67 3.84961Z" fill="#1a1d27"/>
+    <path d="M49.5127 10.875C50.3671 10.8302 51.4335 10.4411 52.4785 9.64551C55.2184 7.55951 57.1607 4.49556 59.2451 1.80469C59.4538 1.53525 59.6649 1.26658 59.877 1.00098H64.2402C63.5002 1.74901 62.7103 2.71114 61.8496 3.82227C59.5537 6.78621 57.5833 9.61938 54.4873 11.9961C56.7979 12.9912 58.3213 14.2198 59.7939 16.0859C61.8056 18.6352 63.3073 21.8836 64.6982 25H61.084C59.8935 22.392 58.7012 20.0181 57.209 18.127C55.3132 15.7244 52.865 14.2224 49.5127 14.1748V25H46.0039V1.00098H49.5127V10.875Z" fill="#1a1d27"/>
+    <path d="M71.3652 25H67.8564V1.00098H71.3652V25Z" fill="#1a1d27"/>
+  </svg></span>
+  <span class="header-divider"></span>
+  <h1>Integer Optimization Explorer</h1>
+</div>
+
+<div class="layout">
+  <!-- Left: Sliders + Config Table -->
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="panel">
+      <div class="panel-title">Resource Pool</div>
+      <div class="slider-group">
+        <div class="slider-row">
+          <span class="slider-label"><span class="icon" data-icon="storage"></span> Storage</span>
+          <input type="range" min="0" max="10" value="6" id="sl-storage">
+          <span class="slider-val" id="val-storage">6</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label"><span class="icon" data-icon="accel"></span> Accel</span>
+          <input type="range" min="0" max="10" value="3" id="sl-accel">
+          <span class="slider-val" id="val-accel">3</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label"><span class="icon" data-icon="compute"></span> Compute</span>
+          <input type="range" min="0" max="10" value="5" id="sl-compute">
+          <span class="slider-val" id="val-compute">5</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:1;">
+      <div class="panel-title">Build Configurations</div>
+      <table class="config-table" id="config-table">
+        <thead>
+          <tr>
+            <th>Config</th>
+            <th><span class="icon" data-icon="storage"></span></th>
+            <th><span class="icon" data-icon="accel"></span></th>
+            <th><span class="icon" data-icon="compute"></span></th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Middle: Solution -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="panel-title">Optimal Solution</div>
+      <div class="total-row">
+        <span class="total-value" id="total-value">0</span>
+        <span class="total-label">pts</span>
+      </div>
+    </div>
+    <div class="solution-visual" id="solution-visual"></div>
+    <div style="flex-shrink:0;">
+      <div class="panel-title" style="margin-bottom:6px;">Resource Usage</div>
+      <div class="resource-bars" id="resource-bars"></div>
+    </div>
+  </div>
+
+  <!-- Right: Shadow Prices -->
+  <div class="panel">
+    <div class="panel-title">Shadow Prices</div>
+    <p style="font-size:11px;color:var(--dim);line-height:1.4;">Marginal value of +1 unit of each resource. High shadow price = bottleneck worth relieving.</p>
+    <div class="shadow-prices" id="shadow-prices"></div>
+    <div style="margin-top:auto;">
+      <div class="panel-title" style="margin-bottom:6px;">What-If Breakdown</div>
+      <div id="whatif" style="font-size:12px;color:var(--dim);line-height:1.6;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="insight-bar" id="insight"></div>
+
+<script>
+// === CONFIGS ===
+// Tuned so accel is binding at defaults (storage=6, accel=3, compute=5).
+// Adding +1 accel unlocks Titan (high-value, accel-heavy).
+const CONFIGS = [
+  { name: "Alpha",   storage: 2, accel: 1, compute: 1, value: 10 },
+  { name: "Bravo",   storage: 1, accel: 2, compute: 1, value: 14 },
+  { name: "Charlie", storage: 3, accel: 0, compute: 2, value: 9  },
+  { name: "Delta",   storage: 1, accel: 1, compute: 3, value: 12 },
+  { name: "Echo",    storage: 0, accel: 1, compute: 1, value: 7  },
+  { name: "Titan",   storage: 2, accel: 3, compute: 2, value: 28 },
+];
+
+const RES_KEYS = ["storage", "accel", "compute"];
+const RES_LABELS = { storage: "Storage Trays", accel: "Accelerator Trays", compute: "Compute Units" };
+const RES_CSS = { storage: "storage", accel: "accel", compute: "compute" };
+const RES_COLORS = { storage: "#d97706", accel: "#7c3aed", compute: "#2563eb" };
+
+// --- SVG Icon system ---
+function icon(type, size = 16) {
+  // All drawn on a 20x20 viewBox, scaled via width/height
+  const c = RES_COLORS[type];
+  const dim = `width="${size}" height="${size}"`;
+  if (type === "storage") {
+    // Storage tray: triangle with horizontal shelf lines inside
+    return `<svg ${dim} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 2L18.5 17H1.5L10 2Z" fill="${c}" fill-opacity="0.15" stroke="${c}" stroke-width="1.4" stroke-linejoin="round"/>
+      <line x1="5.5" y1="12" x2="14.5" y2="12" stroke="${c}" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.7"/>
+      <line x1="3.8" y1="15" x2="16.2" y2="15" stroke="${c}" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.5"/>
+    </svg>`;
+  } else if (type === "accel") {
+    // Accelerator: circle with lightning bolt
+    return `<svg ${dim} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10" cy="10" r="8.5" fill="${c}" fill-opacity="0.15" stroke="${c}" stroke-width="1.4"/>
+      <path d="M11.2 3.8L7 10.5H9.8L8.8 16.2L13.5 9.2H10.5L11.2 3.8Z" fill="${c}" fill-opacity="0.9"/>
+    </svg>`;
+  } else {
+    // Compute chip: square body with pins on each side
+    return `<svg ${dim} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" fill="${c}" fill-opacity="0.15" stroke="${c}" stroke-width="1.4"/>
+      <rect x="7" y="7" width="6" height="6" rx="1" fill="${c}" fill-opacity="0.35"/>
+      <line x1="7.5" y1="2" x2="7.5" y2="4.5" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="12.5" y1="2" x2="12.5" y2="4.5" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="7.5" y1="15.5" x2="7.5" y2="18" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="12.5" y1="15.5" x2="12.5" y2="18" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="2" y1="7.5" x2="4.5" y2="7.5" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="2" y1="12.5" x2="4.5" y2="12.5" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="15.5" y1="7.5" x2="18" y2="7.5" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="15.5" y1="12.5" x2="18" y2="12.5" stroke="${c}" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>`;
+  }
+}
+
+// Inline icon shorthand for use in innerHTML strings
+const RES_SHAPES = {
+  storage: `<span class="icon">${icon("storage", 15)}</span>`,
+  accel: `<span class="icon">${icon("accel", 15)}</span>`,
+  compute: `<span class="icon">${icon("compute", 15)}</span>`,
+};
+
+// Hydrate all data-icon placeholders in static HTML
+document.querySelectorAll("[data-icon]").forEach(el => {
+  el.innerHTML = icon(el.dataset.icon, 15);
+});
+
+// Populate config table
+const tbody = document.querySelector("#config-table tbody");
+CONFIGS.forEach(c => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td class="config-name">${c.name}</td>
+    <td class="config-cost">${c.storage}</td>
+    <td class="config-cost">${c.accel}</td>
+    <td class="config-cost">${c.compute}</td>
+    <td class="config-val">${c.value}</td>
+  `;
+  tbody.appendChild(tr);
+});
+
+// === SOLVER ===
+function solve(caps) {
+  // caps = { storage, accel, compute }
+  // Find max counts per config
+  const maxCounts = CONFIGS.map(c => {
+    let m = Infinity;
+    for (const k of RES_KEYS) {
+      if (c[k] > 0) m = Math.min(m, Math.floor(caps[k] / c[k]));
+    }
+    return m === Infinity ? 10 : Math.min(m, 10);
+  });
+
+  let bestValue = 0;
+  let bestCombo = CONFIGS.map(() => 0);
+
+  // Recursive enumeration with pruning
+  function enumerate(idx, remaining, combo, value) {
+    if (idx === CONFIGS.length) {
+      if (value > bestValue) {
+        bestValue = value;
+        bestCombo = [...combo];
+      }
+      return;
+    }
+    const c = CONFIGS[idx];
+    const maxForThis = Math.min(maxCounts[idx], ...RES_KEYS.map(k => c[k] > 0 ? Math.floor(remaining[k] / c[k]) : Infinity));
+    for (let n = 0; n <= maxForThis; n++) {
+      combo[idx] = n;
+      enumerate(idx + 1,
+        { storage: remaining.storage - n * c.storage, accel: remaining.accel - n * c.accel, compute: remaining.compute - n * c.compute },
+        combo, value + n * c.value);
+    }
+    combo[idx] = 0;
+  }
+
+  enumerate(0, { ...caps }, new Array(CONFIGS.length).fill(0), 0);
+  return { value: bestValue, combo: bestCombo };
+}
+
+function getUsage(combo) {
+  const usage = { storage: 0, accel: 0, compute: 0 };
+  combo.forEach((n, i) => {
+    for (const k of RES_KEYS) usage[k] += n * CONFIGS[i][k];
+  });
+  return usage;
+}
+
+// === UI UPDATE ===
+function update() {
+  const caps = {
+    storage: +document.getElementById("sl-storage").value,
+    accel: +document.getElementById("sl-accel").value,
+    compute: +document.getElementById("sl-compute").value,
+  };
+
+  // Update slider values
+  for (const k of RES_KEYS) {
+    document.getElementById("val-" + k).textContent = caps[k];
+  }
+
+  const result = solve(caps);
+  const usage = getUsage(result.combo);
+
+  // Total value
+  document.getElementById("total-value").textContent = result.value;
+
+  // Visual solution cards
+  const visDiv = document.getElementById("solution-visual");
+  visDiv.innerHTML = "";
+  let anySelected = false;
+  CONFIGS.forEach((c, i) => {
+    const n = result.combo[i];
+    if (n === 0) return;
+    anySelected = true;
+    for (let copy = 0; copy < n; copy++) {
+      const card = document.createElement("div");
+      card.className = "config-card";
+      // Build shape icons for each resource consumed
+      let shapesHTML = "";
+      const resTypes = ["storage", "accel", "compute"];
+      let first = true;
+      for (const r of resTypes) {
+        if (c[r] > 0) {
+          if (!first) shapesHTML += '<span class="config-card-divider"></span>';
+          for (let s = 0; s < c[r]; s++) shapesHTML += icon(r, 20);
+          first = false;
+        }
+      }
+      card.innerHTML = `
+        <div class="config-card-header">
+          <span class="config-card-name">${c.name}</span>
+          <span class="config-card-value">+${c.value}</span>
+        </div>
+        <div class="config-card-shapes">${shapesHTML}</div>
+      `;
+      visDiv.appendChild(card);
+    }
+  });
+  if (!anySelected) {
+    visDiv.innerHTML = '<div class="solution-empty">No feasible solution</div>';
+  }
+
+  // Resource bars
+  const barsDiv = document.getElementById("resource-bars");
+  barsDiv.innerHTML = "";
+  const slacks = {};
+  for (const k of RES_KEYS) {
+    slacks[k] = caps[k] - usage[k];
+    const pct = caps[k] > 0 ? Math.min(100, (usage[k] / caps[k]) * 100) : 0;
+    const isBinding = slacks[k] === 0 && caps[k] > 0;
+    const row = document.createElement("div");
+    row.className = "res-bar-row";
+    row.innerHTML = `
+      <div class="res-bar-header">
+        <span class="res-name">${RES_SHAPES[k]} ${RES_LABELS[k]}</span>
+        <span class="res-usage">${usage[k]} / ${caps[k]}</span>
+      </div>
+      <div class="bar-track${isBinding ? " binding" : ""}">
+        <div class="bar-fill ${RES_CSS[k]}" style="width:${pct}%"></div>
+        <span class="binding-label">Binding</span>
+      </div>
+    `;
+    barsDiv.appendChild(row);
+  }
+
+  // Shadow prices
+  const shadowDiv = document.getElementById("shadow-prices");
+  shadowDiv.innerHTML = "";
+  const shadows = {};
+  let maxShadow = 0;
+  for (const k of RES_KEYS) {
+    const newCaps = { ...caps };
+    newCaps[k] += 1;
+    const r2 = solve(newCaps);
+    shadows[k] = r2.value - result.value;
+    maxShadow = Math.max(maxShadow, shadows[k]);
+  }
+  for (const k of RES_KEYS) {
+    const sp = shadows[k];
+    const isActive = sp > 0;
+    const card = document.createElement("div");
+    card.className = "shadow-card" + (isActive ? " active" : " zero");
+    card.innerHTML = `
+      <span class="sp-label">${RES_SHAPES[k]} +1</span>
+      <span class="sp-value">${sp === 0 ? "0" : "+" + sp}</span>
+      <span class="sp-unit">points</span>
+    `;
+    shadowDiv.appendChild(card);
+  }
+
+  // What-if breakdown
+  const whatifDiv = document.getElementById("whatif");
+  let whatifHTML = "";
+  for (const k of RES_KEYS) {
+    const sp = shadows[k];
+    whatifHTML += `<div>${RES_SHAPES[k]} +1 ${RES_LABELS[k]}: <span style="color:${sp > 0 ? "var(--highlight)" : "var(--dim)"}; font-weight:700;">${sp === 0 ? "no gain" : "+" + sp + " pts"}</span></div>`;
+  }
+  whatifDiv.innerHTML = whatifHTML;
+
+  // Insight
+  const insightEl = document.getElementById("insight");
+  const bindingRes = RES_KEYS.filter(k => slacks[k] === 0 && caps[k] > 0);
+  const topShadow = RES_KEYS.reduce((a, b) => shadows[a] >= shadows[b] ? a : b);
+
+  let insight = "";
+  if (result.value === 0) {
+    insight = "No feasible configuration fits within the current resource pool.";
+  } else if (maxShadow === 0) {
+    insight = "No single resource is constraining — you have slack everywhere. Adding more resources won't improve the solution.";
+  } else if (bindingRes.length === 1) {
+    insight = `<em>${RES_LABELS[bindingRes[0]]}</em> are your bottleneck — each additional unit is worth <em>${shadows[bindingRes[0]]} points</em>.`;
+  } else if (bindingRes.length > 1) {
+    const names = bindingRes.map(k => `<em>${RES_LABELS[k]}</em>`).join(" and ");
+    insight = `${names} are both fully utilized. The biggest payoff comes from adding <em>${RES_LABELS[topShadow]}</em> (+${shadows[topShadow]} pts).`;
+  } else {
+    insight = `<em>${RES_LABELS[topShadow]}</em> have the highest marginal value at <em>+${shadows[topShadow]} points</em> per unit, even with slack remaining.`;
+  }
+  insightEl.innerHTML = "💡 " + insight;
+}
+
+// Bind sliders
+for (const k of RES_KEYS) {
+  document.getElementById("sl-" + k).addEventListener("input", update);
+}
+
+update();
+</script>
+</body>
+</html>
